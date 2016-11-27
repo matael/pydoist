@@ -1,0 +1,75 @@
+#! /usr/bin/env python
+# -*- coding:utf8 -*-
+#
+# pydoist
+#
+# Copyright © 2016 Mathieu Gaborit (matael) <mathieu@matael.org>
+#
+#
+# Distributed under WTFPL terms
+#
+#            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+#                    Version 2, December 2004
+#
+# Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+#
+# Everyone is permitted to copy and distribute verbatim or modified
+# copies of this license document, and changing it is allowed as long
+# as the name is changed.
+#
+#            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+#   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+#
+#  0. You just DO WHAT THE FUCK YOU WANT TO.
+#
+
+"""
+Add items to Todoist fro the command line
+"""
+
+import sys
+import os
+import argparse
+import logging
+import re
+
+from pydoist import Pydoist
+
+
+def get_logger():
+    return logging.getLogger(__name__)
+
+
+def check_token_format(potential_token):
+    """Check if token's format is correct"""
+    return re.match(r'^[a-f0-9]{40}$', potential_token)
+
+def get_token(ns):
+    """Return token set on the command line of default to token from the config file"""
+
+    if ns.token and check_token_format(ns.token):
+        return ns.token
+    else:
+        if not os.path.exists(os.path.expanduser('~/.config/pydoist.conf')):
+            get_logger().critical('Unable to find config file... Aborting.')
+            sys.exit(1)
+        else:
+            with open(os.path.expanduser('~/.config/pydoist.conf')) as fh:
+                potential_token = fh.read()
+        if check_token_format(potential_token):
+            return potential_token
+        else:
+            get_logger.critical('Token found in config doesn\'t match the expected format. Aborting.')
+            sys.exit(1)
+
+if __name__=='__main__':
+
+    parser = argparse.ArgumentParser(description='Shoot todos up in the Todoist cloud')
+    parser.add_argument('--token', metavar='TOK', help='Todoist API token (can be specified in the config file)')
+    ns, todostr = parser.parse_known_args()
+
+    token = get_token(ns)
+    doist = Pydoist(token)
+    doist.shoot_todo(todostr)
+
+
